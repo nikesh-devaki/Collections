@@ -1,25 +1,56 @@
 package com.ndevaki.collections.utils;
 
+import com.ndevaki.collections.AbstractList;
 import com.ndevaki.collections.Collections;
 import com.ndevaki.collections.List;
 
 import java.io.InvalidClassException;
+import java.io.Serializable;
 import java.security.InvalidParameterException;
+import java.util.Arrays;
+import java.util.ListIterator;
 
-public class ArrayList<T> implements List {
+public class ArrayList<T> extends AbstractList<T>
+                        implements Serializable {
 
     private static float threshold_limit=0.75f;
-    private Object[] data;
+    //array data serialized through write and read() methods. not using default serialization mechanism
+    private transient Object[] data;
+    private int size;
     private int lastIndex=-1;
 
     public ArrayList() {
-        this.data = new Object[1];
+        this(10);
+        //this.data = new Object[10];
     }
 
     public ArrayList(int startSize){
+        super();
+        if(startSize<0){
+            throw new IllegalArgumentException("Initial size canotbe less than 0");
+        }
         this.data=new Object[startSize];
     }
 
+    public ArrayList(Collections<? extends T> collection){
+        data=collection.toArray();
+        size=data.length;
+        //TODO: Need to handle when toArray() returns in different type
+    }
+
+    public void trimSize(){
+        if(data.length>size) {
+            data = Arrays.copyOf(data, size);
+        }
+    }
+
+    public void ensureCapcity(int minLength){
+        if(minLength>0 && data.length-size<minLength){
+           int diff= data.length-size+minLength;
+           int newLength=(int)(1+threshold_limit)*diff;
+           data=Arrays.copyOf(data,newLength);
+        }
+    }
     public int getIndexOf(Object obj) throws InvalidClassException {
         if(obj==null){
             throw new NullPointerException("Input cannot be null");
@@ -33,6 +64,30 @@ public class ArrayList<T> implements List {
             }
         }
         return -1;
+    }
+
+    public ArrayList<T> clone(){
+        //TODO: Need to implement
+    }
+    public T[] toArray(){
+        return (T[])Arrays.copyOf(data,size);
+    }
+
+
+    public T[] toArray(T[] array){
+        if(array.length<size){
+            array=new T[size];
+            array=(T[])Arrays.copyOf(data,size);
+        }else{
+            for(int i=0;i<size;i++){
+                array[i]=(T)data[i];
+            }
+        }
+        return array;
+    }
+    @Override
+    public ListIterator listIterator() {
+        return null;
     }
 
     public Object getValueAtIndex(int index) {
@@ -65,13 +120,46 @@ public class ArrayList<T> implements List {
         data[index]=value;
     }
 
+    //TODO: System.arraycopy() should use. Pending
     public void add(int index, Object value) {
+        ensureCapcity(1);
+        int i=size-1;
+        for(;i>=index;i--){
+            data[i+1]=data[i];
+        }
+        data[i]=value;
+        size++;
+    }
+
+    public void validateIndex(int index){
+        if(index<0||index>data.length){
+            throw new ArrayIndexOutOfBoundsException("incorrect value "+index);
+        }
+    }
+    public Object get(int index) {
+       validateIndex(index);
+       return data[index];
+    }
+
+    public Object set(int index, Object value) {
+        validateIndex(index);
+        Object temp=data[index];
+        data[index]=value;
+        return temp;
+    }
+    //TODO: System.arraycopy() should use. Pending
+    public Object remove(int index) {
+        return null;
+    }
+
+    public void remove(int startIndex, int endIndex) {
 
     }
 
-    public void add(Object obj) {
+    public boolean add(Object obj) {
         int size=this.size();
         int length=data.length;
+        boolean modified=false;
         //good palce to validate? inside resize or here?
         if(size*threshold_limit>length){
            data=resize(data);
@@ -79,6 +167,8 @@ public class ArrayList<T> implements List {
         //How to maintain last index? lastindex-1 or lkast index?
         lastIndex++;
         data[lastIndex]=obj;
+        modified=true;
+        return false;
     }
 
     Object[] resize(Object[] obj){
@@ -109,7 +199,7 @@ public class ArrayList<T> implements List {
 
     // is it good to rely on lastIndex? or array length?
     public int size() {
-        return data.length;
+        return size;
     }
 
     public boolean containsValue(Object obj) throws InvalidClassException {
@@ -125,7 +215,7 @@ public class ArrayList<T> implements List {
     }
 
     public boolean isEmpty() {
-        return this.size()!=0?false:true;
+        return this.size()==0;
     }
 
     public void clear() {
@@ -137,11 +227,25 @@ public class ArrayList<T> implements List {
         return null;
     }
 
+    @Override
+    public ListIterator getListIterator() {
+        return null;
+    }
+
+    @Override
+    public boolean retainAll(Collections coll) {
+        return false;
+    }
+
     public boolean hasNext() {
         return false;
     }
 
     public T next() {
         return null;
+    }
+
+    public boolean remove() {
+        return false;
     }
 }
