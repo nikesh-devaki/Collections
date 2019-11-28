@@ -1,4 +1,6 @@
-package com.ndevaki.collections;
+package com.ndevaki.collections.utils.list;
+
+import com.ndevaki.collections.Collections;
 
 import java.io.InvalidClassException;
 import java.util.Collection;

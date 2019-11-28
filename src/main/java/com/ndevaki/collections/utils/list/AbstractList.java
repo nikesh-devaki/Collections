@@ -1,5 +1,7 @@
-package com.ndevaki.collections;
+package com.ndevaki.collections.utils.list;
 
+import com.ndevaki.collections.AbstractCollection;
+import com.ndevaki.collections.Collections;
 import com.ndevaki.collections.utils.Iterator;
 
 import java.io.InvalidClassException;

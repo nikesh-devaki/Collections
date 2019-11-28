@@ -1,17 +1,49 @@
-package com.ndevaki.collections.utils;
+package com.ndevaki.collections.utils.list;
 
-import com.ndevaki.collections.AbstractList;
 import com.ndevaki.collections.Collections;
-import com.ndevaki.collections.List;
+import com.ndevaki.collections.utils.Iterator;
 
-import java.io.InvalidClassException;
-import java.io.Serializable;
+import java.io.*;
 import java.security.InvalidParameterException;
 import java.util.Arrays;
 import java.util.ListIterator;
+import java.util.RandomAccess;
 
+/*
+ * <p><strong>Note that this implementation is not synchronized.</strong>
+ * If multiple threads access an <tt>ArrayList</tt> instance concurrently,
+ * and at least one of the threads modifies the list structurally, it
+ * <i>must</i> be synchronized externally.  (A structural modification is
+ * any operation that adds or deletes one or more elements, or explicitly
+ * resizes the backing array; merely setting the value of an element is not
+ * a structural modification.)  This is typically accomplished by
+ * synchronizing on some object that naturally encapsulates the list.
+ *
+ *  *
+ * If no such object exists, the list should be "wrapped" using the
+ * {@link Collections#synchronizedList Collections.synchronizedList}
+ * method.  This is best done at creation time, to prevent accidental
+ * unsynchronized access to the list:<pre>
+ *   List list = Collections.synchronizedList(new ArrayList(...));</pre>
+ *
+ *
+ * ---Iterator works on fail-fast principle
+ *  *
+ * <p><a name="fail-fast"/>
+ * The iterators returned by this class's {@link #iterator() iterator} and
+ * {@link #listIterator(int) listIterator} methods are <em>fail-fast</em>:
+ * if the list is structurally modified at any time after the iterator is
+ * created, in any way except through the iterator's own
+ * {@link ListIterator#remove() remove} or
+ * {@link ListIterator#add(Object) add} methods, the iterator will throw a
+ * {@link ConcurrentModificationException}.  Thus, in the face of
+ * concurrent modification, the iterator fails quickly and cleanly, rather
+ * than risking arbitrary, non-deterministic behavior at an undetermined
+ * time in the future.
+ */
+//TODO:Work on Co-Modifications
 public class ArrayList<T> extends AbstractList<T>
-                        implements Serializable {
+                        implements List, RandomAccess,Cloneable,Serializable {
 
     private static float threshold_limit=0.75f;
     //array data serialized through write and read() methods. not using default serialization mechanism
@@ -68,13 +100,14 @@ public class ArrayList<T> extends AbstractList<T>
 
     public ArrayList<T> clone(){
         //TODO: Need to implement
+        return null;
     }
     public T[] toArray(){
         return (T[])Arrays.copyOf(data,size);
     }
 
-
-    public T[] toArray(T[] array){
+    @Override
+    public Object[] toArray(Object[] array) {
         if(array.length<size){
             array=new T[size];
             array=(T[])Arrays.copyOf(data,size);
@@ -85,6 +118,7 @@ public class ArrayList<T> extends AbstractList<T>
         }
         return array;
     }
+
     @Override
     public ListIterator listIterator() {
         return null;
@@ -123,11 +157,8 @@ public class ArrayList<T> extends AbstractList<T>
     //TODO: System.arraycopy() should use. Pending
     public void add(int index, Object value) {
         ensureCapcity(1);
-        int i=size-1;
-        for(;i>=index;i--){
-            data[i+1]=data[i];
-        }
-        data[i]=value;
+        System.arraycopy(data,index,data,index+1,size-index);
+        data[index]=value;
         size++;
     }
 
@@ -147,13 +178,25 @@ public class ArrayList<T> extends AbstractList<T>
         data[index]=value;
         return temp;
     }
-    //TODO: System.arraycopy() should use. Pending
+
     public Object remove(int index) {
-        return null;
+        validateIndex(index);
+        Object oldValue=data[index];
+        System.arraycopy(data,index+1,data,index,size-index+1);
+        data[size--]=null;
+        return oldValue;
     }
 
     public void remove(int startIndex, int endIndex) {
-
+        validateIndex(startIndex);
+        validateIndex(endIndex);
+        if(startIndex<endIndex){
+            throw new IllegalArgumentException("Start index should be lower than endIndex");
+        }
+        System.arraycopy(data,endIndex+1,data,startIndex,size-endIndex);
+        for(int i=endIndex+1;i<data.length;i++){
+            data[i]=null;
+        }
     }
 
     public boolean add(Object obj) {
@@ -219,8 +262,31 @@ public class ArrayList<T> extends AbstractList<T>
     }
 
     public void clear() {
-        this.data=new Object[0];
-        lastIndex--;
+       for(int i=0;i<data.length;i++){
+           data[i]=null;
+       }
+       size=0;
+    }
+
+    /*
+     * Ignore static,transient variables
+     * serilaize modification count, size, array data
+     */
+    public void writeObject(ObjectOutputStream output) throws IOException {
+        //caputure count of data array
+        output.defaultWriteObject();
+        output.writeInt(size);
+        for(int i=0;i<size;i++){
+            output.writeObject(data[i]);
+        }
+        //if count changes inbetween throw ConcurrentModificationException
+    }
+
+    public ArrayList<T> readObject(ObjectInputStream inputStream) throws IOException, ClassNotFoundException {
+        inputStream.defaultReadObject();
+        ArrayList<T> result=new ArrayList<T>();
+        result.size=inputStream.re
+
     }
 
     public Iterator getIterator() {
@@ -248,4 +314,8 @@ public class ArrayList<T> extends AbstractList<T>
     public boolean remove() {
         return false;
     }
+
+    //Implement Iterator
+    // Implement ListIterator
+    //Implement Sublist
 }
